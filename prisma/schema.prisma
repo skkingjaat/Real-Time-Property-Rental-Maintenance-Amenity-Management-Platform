@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String           @id @default(cuid())
+  name            String
+  email           String           @unique
+  password        String
+  role            UserRole         @default(TENANT)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  amenityBookings AmenityBooking[]
+  properties      Property[]
+}
+
+model Property {
+  id                  String               @id @default(cuid())
+  name                String
+  address             String
+  ownerId             String
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  amenities           Amenity[]
+  maintenanceRequests MaintenanceRequest[]
+  owner               User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+}
+
+model MaintenanceRequest {
+  id               String            @id @default(cuid())
+  propertyId       String
+  issueDescription String
+  status           MaintenanceStatus @default(PENDING)
+  createdAt        DateTime          @default(now())
+  resolutionDate   DateTime?
+  property         Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@index([status])
+}
+
+model Amenity {
+  id                 String                    @id @default(cuid())
+  propertyId         String
+  name               String
+  availabilityStatus AmenityAvailabilityStatus @default(AVAILABLE)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+  property           Property                  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  bookings           AmenityBooking[]
+
+  @@index([propertyId])
+  @@index([availabilityStatus])
+}
+
+model AmenityBooking {
+  id           String    @id @default(cuid())
+  amenityId    String
+  userId       String
+  bookingDate  DateTime
+  checkInTime  DateTime
+  checkOutTime DateTime
+  createdAt    DateTime  @default(now())
+  checkedInAt  DateTime?
+  checkedOutAt DateTime?
+  amenity      Amenity   @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([amenityId, bookingDate])
+  @@index([userId])
+}
+
+enum UserRole {
+  TENANT
+  OWNER
+  STAFF
+}
+
+enum MaintenanceStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum AmenityAvailabilityStatus {
+  AVAILABLE
+  UNAVAILABLE
+}
